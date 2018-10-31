@@ -1,13 +1,19 @@
 package cn.netkiller.camera;
 
+import android.Manifest;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.StrictMode;
 import android.provider.MediaStore;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -20,6 +26,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -31,7 +38,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static int REQUEST_CAMERA = 1;
     private static int REQUEST_PHOTO = 2;
     private static int REQUEST_ALBUM = 3;
-    private String imagePath;
+    private File imageFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +54,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         buttonSavePhoto.setOnClickListener(this);
         buttonAlbum.setOnClickListener(this);
 
+        StrictMode.VmPolicy.Builder newbuilder = new StrictMode.VmPolicy.Builder();
+        StrictMode.setVmPolicy(newbuilder.build());
 
     }
 
@@ -61,29 +70,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.buttonSavePhoto:
 
-                if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+                if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
                     TextView textView = (TextView) findViewById(R.id.textView);
                     textView.setText("SD 卡不存在，请插入 SD 卡！");
+                }
 
-//                    imagePath = getDataDir().getAbsolutePath();
-//                    imagePath = getDir("tmp.png", MODE_PRIVATE).getAbsolutePath();
-//                    File dir = new File(imagePath);
-//                    if (!dir.exists()) {
-//                        boolean result = dir.mkdirs();
-//                        Log.d("album", "dir.mkdirs() -> " + imagePath);
-//                    }
-
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                    return;
                 } else {
-                    imagePath = Environment.getExternalStorageDirectory().getPath();// 获取SD卡路径
-                    imagePath = imagePath + "/" + "temp.png";// 指定路径
 
-                    Log.d("album", imagePath);
+                    String dir = Environment.getExternalStorageDirectory().getPath();
+                    new File(dir).mkdirs();
 
-                    // 拍照后存储并显示图片
+                    imageFile = new File(dir, "tmp.png");
+
+                    Uri imageUri = FileProvider.getUriForFile(MainActivity.this, "cn.netkiller.camera.provider", imageFile);
+                    Log.d("album", imageFile.getPath());
+
                     intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);// 启动系统相机
-                    Uri photoUri = Uri.fromFile(new File(imagePath)); // 传递路径
-                    intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);// 更改系统默认存储路径
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
                     startActivityForResult(intent, REQUEST_PHOTO);
+
+
                 }
 
                 break;
@@ -108,13 +117,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Bitmap bitmap = (Bitmap) bundle.get("data"); // 将data中的信息流解析为Bitmap类型
                 imageViewPicture.setImageBitmap(bitmap);// 显示图片
             } else if (requestCode == REQUEST_PHOTO) {
-                Log.i("photo", imagePath);
-                FileInputStream fileInputStream = null;
+                Log.i("photo", imageFile.getPath());
                 try {
-                    fileInputStream = new FileInputStream(imagePath); // 根据路径获取数据
+//                    InputStream inputStream = getContentResolver().openInputStream(imageUri);
+                    String dir = Environment.getExternalStorageDirectory().getPath();
+                    FileInputStream fileInputStream = new FileInputStream(imageFile);
                     Bitmap bitmap = BitmapFactory.decodeStream(fileInputStream);
+                    fileInputStream.close();
                     imageViewPicture.setImageBitmap(bitmap);// 显示图片
-                    fileInputStream.close();// 关闭流
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
