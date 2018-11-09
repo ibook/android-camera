@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.StrictMode;
@@ -21,12 +22,14 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.Policy;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -39,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static int REQUEST_PHOTO = 2;
     private static int REQUEST_ALBUM = 3;
     private File imageFile;
+    private Button buttonFlash;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,10 +53,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         buttonOpenCamera = (Button) findViewById(R.id.buttonOpenCamera);
         buttonSavePhoto = (Button) findViewById(R.id.buttonSavePhoto);
         buttonAlbum = (Button) findViewById(R.id.buttonAlbum);
+        buttonFlash = (Button) findViewById(R.id.buttonFlash);
 
         buttonOpenCamera.setOnClickListener(this);
         buttonSavePhoto.setOnClickListener(this);
         buttonAlbum.setOnClickListener(this);
+        buttonFlash.setOnClickListener(this);
 
         StrictMode.VmPolicy.Builder newbuilder = new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(newbuilder.build());
@@ -102,6 +108,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 intent.setType("image/*");
                 startActivityForResult(Intent.createChooser(intent, "Select Picture"), 3);
 
+                break;
+            case R.id.buttonFlash:
+                startActivity(new Intent(MainActivity.this,FlashLightActivity.class));
                 break;
             default:
                 break;
